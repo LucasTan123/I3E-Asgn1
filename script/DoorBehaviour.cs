@@ -2,32 +2,24 @@ using UnityEngine;
 
 public class DoorBehaviour : MonoBehaviour
 {
-    private bool isOpen = false; // Track door state
+    // Tracks whether the door is open or closed
+    private bool isOpen = false;
 
+    // Called when the player interacts with the door
     public void Interact()
     {
-        Vector3 doorRotation = transform.eulerAngles;
-
         if (!isOpen)
         {
-            doorRotation.y += 90f; // Open the door
+            // Rotate door 90 degrees to open it
+            transform.eulerAngles = new Vector3(transform.eulerAngles.x, transform.eulerAngles.y + 90f, transform.eulerAngles.z);
         }
         else
         {
-            doorRotation.y -= 90f; // Close the door
+            // Rotate door back 90 degrees to close it
+            transform.eulerAngles = new Vector3(transform.eulerAngles.x, transform.eulerAngles.y - 90f, transform.eulerAngles.z);
         }
 
-        transform.eulerAngles = doorRotation;
-        isOpen = !isOpen; // Toggle door state
-    }
-
-    void Start()
-    {
-
-    }
-
-    void Update()
-    {
-
+        // Toggle door state
+        isOpen = !isOpen;
     }
 }

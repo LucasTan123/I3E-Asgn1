@@ -1,2 +1,17 @@
 fileFormatVersion: 2
 guid: 51d1f782f6000ee4799ba285e5804ae7
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - projectile: {instanceID: 0}
+  - spawnPoint: {instanceID: 0}
+  - healthText: {instanceID: 0}
+  - scoreText: {instanceID: 0}
+  - collectiblesText: {instanceID: 0}
+  - healthBarScript: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
