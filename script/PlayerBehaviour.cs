@@ -1,13 +1,14 @@
-using System.Security.Cryptography;
 using UnityEngine;
 using TMPro;
-using UnityEngine.UI;
 
 public class PlayerBehaviour : MonoBehaviour
 {
     int maxHealth = 100;
     int currentHealth = 100;
     int currentScore = 0;
+    int collectiblesCollected = 0;
+    [SerializeField] int totalCollectibles = 10;
+
     bool canInteract = false;
     GemBehaviour currentGem = null;
     CoinBehaviour currentCoin = null;
@@ -15,34 +16,44 @@ public class PlayerBehaviour : MonoBehaviour
     DamageBehaviour currentDamage;
     DoorBehaviour currentDoor = null;
 
-    [SerializeField]
-    GameObject projectile;
-    [SerializeField]
-    Transform spawnPoint;
-    [SerializeField]
-    float firestrength = 0f;
-    [SerializeField]
-    TextMeshProUGUI healthText;
-    [SerializeField]
-    HealthBarScript healthBarScript;
-    [SerializeField]
-    TextMeshProUGUI scoreText;
+    [SerializeField] GameObject projectile;
+    [SerializeField] Transform spawnPoint;
+    [SerializeField] float firestrength = 0f;
+    [SerializeField] TextMeshProUGUI healthText;
+    [SerializeField] HealthBarScript healthBarScript;
+    [SerializeField] TextMeshProUGUI scoreText;
+    [SerializeField] TextMeshProUGUI collectibleText;
 
-    Vector3 respawnPosition;
-    CharacterController characterController;
+    Vector3 respawnPoint;
 
     void Start()
     {
-        characterController = GetComponent<CharacterController>();
+        respawnPoint = transform.position;
+        UpdateHealthDisplay();
+        UpdateScoreDisplay();
+        UpdateCollectibleDisplay();
+    }
 
-        if (healthBarScript != null)
+    void Update()
+    {
+        if (currentHealth <= 0)
         {
-            healthBarScript.UpdateHealthDisplay(currentHealth, maxHealth);
+            Respawn();
         }
 
-        if (scoreText != null)
+        RaycastHit hitInfo;
+        if (Physics.Raycast(spawnPoint.position, spawnPoint.forward, out hitInfo))
         {
-            scoreText.text = "Score: 0"; // Initialize score display at start
+            if (hitInfo.collider.CompareTag("Collectible"))
+            {
+                canInteract = true;
+                currentCoin = hitInfo.collider.GetComponent<CoinBehaviour>();
+            }
+            else if (hitInfo.collider.CompareTag("Collectable"))
+            {
+                canInteract = true;
+                currentGem = hitInfo.collider.GetComponent<GemBehaviour>();
+            }
         }
     }
 
@@ -68,74 +79,6 @@ public class PlayerBehaviour : MonoBehaviour
         }
     }
 
-    public void ModifyScore(int amt)
-    {
-        currentScore += amt;
-
-        if (scoreText != null)
-        {
-            scoreText.text = "Score: " + currentScore;
-        }
-        else
-        {
-            Debug.LogWarning("ScoreText UI is not assigned!");
-        }
-    }
-
-    public void ModifyHealth(int amount)
-    {
-        currentHealth += amount;
-
-        if (currentHealth > maxHealth)
-            currentHealth = maxHealth;
-
-        if (healthBarScript != null)
-        {
-            healthBarScript.UpdateHealthDisplay(currentHealth, maxHealth);
-        }
-
-        if (currentHealth <= 0)
-        {
-            currentHealth = 0;
-
-            // Update UI again to show 0 health immediately before respawn
-            if (healthBarScript != null)
-            {
-                healthBarScript.UpdateHealthDisplay(currentHealth, maxHealth);
-            }
-
-            Respawn();
-        }
-    }
-
-    public void SetRespawnPoint(Vector3 newRespawnPosition)
-    {
-        respawnPosition = newRespawnPosition;
-        Debug.Log("Respawn point set to: " + respawnPosition);
-    }
-
-    void Respawn()
-    {
-        Debug.Log("Respawning player...");
-        if (characterController != null)
-        {
-            characterController.enabled = false;
-            transform.position = respawnPosition;
-            characterController.enabled = true;
-        }
-        else
-        {
-            transform.position = respawnPosition;
-        }
-
-        currentHealth = maxHealth;
-
-        if (healthBarScript != null)
-        {
-            healthBarScript.UpdateHealthDisplay(currentHealth, maxHealth);
-        }
-    }
-
     void OnFire()
     {
         GameObject newProjectile = Instantiate(projectile, spawnPoint.position, spawnPoint.rotation);
@@ -145,8 +88,6 @@ public class PlayerBehaviour : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        Debug.Log(other.gameObject.name);
-
         if (other.CompareTag("Collectible"))
         {
             canInteract = true;
@@ -165,8 +106,8 @@ public class PlayerBehaviour : MonoBehaviour
         else if (other.CompareTag("Recovery"))
         {
             Debug.Log("Recovering health");
-            SetRespawnPoint(other.transform.position);
             other.GetComponent<RecoveryBehaviour>().RecoverHealth(this);
+            respawnPoint = other.transform.position; // set as new respawn point
         }
         else if (other.CompareTag("Damage"))
         {
@@ -204,36 +145,57 @@ public class PlayerBehaviour : MonoBehaviour
         }
     }
 
-    void Update()
+    public void ModifyScore(int amt)
     {
-        RaycastHit hitInfo;
-        if (Physics.Raycast(spawnPoint.position, spawnPoint.forward, out hitInfo))
-        {
-            if (hitInfo.collider.CompareTag("Collectible"))
-            {
-                if (currentCoin != null)
-                {
-                    //currentCoin.Unhighlight();
-                }
-                canInteract = true;
-                currentCoin = hitInfo.collider.GetComponent<CoinBehaviour>();
-                //currentCoin.Highlight();
-            }
-            else if (hitInfo.collider.CompareTag("Collectable"))
-            {
-                if (currentGem != null)
-                {
-                    //currentGem.Unhighlight();
-                }
-                canInteract = true;
-                currentGem = hitInfo.collider.GetComponent<GemBehaviour>();
-                //currentGem.Highlight();
-            }
-        }
-        else if (currentCoin != null)
-        {
-            //currentCoin.Unhighlight();
-            //currentCoin = null;
-        }
+        currentScore += amt;
+        UpdateScoreDisplay();
+    }
+
+    public void ModifyHealth(int amount)
+    {
+        currentHealth += amount;
+
+        if (currentHealth > maxHealth)
+            currentHealth = maxHealth;
+        else if (currentHealth <= 0)
+            currentHealth = 0;
+
+        UpdateHealthDisplay();
+    }
+
+    void Respawn()
+    {
+        transform.position = respawnPoint;
+        currentHealth = maxHealth;
+        UpdateHealthDisplay();
+    }
+
+    void UpdateHealthDisplay()
+    {
+        if (healthBarScript != null)
+            healthBarScript.UpdateHealthDisplay(currentHealth, maxHealth);
+    }
+
+    void UpdateScoreDisplay()
+    {
+        if (scoreText != null)
+            scoreText.text = "Score: " + currentScore + "/300";
+    }
+
+    void UpdateCollectibleDisplay()
+    {
+        if (collectibleText != null)
+            collectibleText.text = "Collectibles: " + collectiblesCollected + "/" + totalCollectibles;
+    }
+
+    public void CollectCollectible()
+    {
+        collectiblesCollected++;
+        UpdateCollectibleDisplay();
+    }
+
+    public int GetScore()
+    {
+        return currentScore;
     }
 }
